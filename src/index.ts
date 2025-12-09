@@ -21,6 +21,9 @@ import type { TelemetryRepository } from './infrastructure/persistence/Telemetry
 import type { EventRepository } from './infrastructure/persistence/EventRepository.js';
 import type { DocsRepository } from './infrastructure/persistence/DocsRepository.js';
 import type { Logger } from './logging/logger.js';
+import { PostgresTelemetryRepository } from './infrastructure/persistence/db/PostgresTelemetryRepository.js';
+import { PostgresEventRepository } from './infrastructure/persistence/db/PostgresEventRepository.js';
+import { PostgresDocsRepository } from './infrastructure/persistence/db/PostgresDocsRepository.js';
 
 export type AppContext = {
   config: AppConfig;
@@ -44,20 +47,23 @@ export function createAppContext(): AppContext {
   const logger = getLogger();
   const time = new SystemTimeProvider();
 
-  const telemetryRepository =
-    config.DATA_BACKEND === 'file' && config.DATA_DIR
-      ? new FileTelemetryRepository(config.DATA_DIR)
-      : new InMemoryTelemetryRepository();
+  let telemetryRepository: TelemetryRepository;
+  let eventRepository: EventRepository;
+  let docsRepository: DocsRepository;
 
-  const eventRepository =
-    config.DATA_BACKEND === 'file' && config.DATA_DIR
-      ? new FileEventRepository(config.DATA_DIR)
-      : new InMemoryEventRepository();
-
-  const docsRepository =
-    config.DATA_BACKEND === 'file' && config.DATA_DIR
-      ? new FileDocsRepository(config.DATA_DIR)
-      : new InMemoryDocsRepository();
+  if (config.DATA_BACKEND === 'file' && config.DATA_DIR) {
+    telemetryRepository = new FileTelemetryRepository(config.DATA_DIR);
+    eventRepository = new FileEventRepository(config.DATA_DIR);
+    docsRepository = new FileDocsRepository(config.DATA_DIR);
+  } else if (config.DATA_BACKEND === 'postgres') {
+    telemetryRepository = new PostgresTelemetryRepository();
+    eventRepository = new PostgresEventRepository();
+    docsRepository = new PostgresDocsRepository();
+  } else {
+    telemetryRepository = new InMemoryTelemetryRepository();
+    eventRepository = new InMemoryEventRepository();
+    docsRepository = new InMemoryDocsRepository();
+  }
 
   const telemetryService = new TelemetryService(telemetryRepository, logger);
   const analyzeTelemetryUseCase = new AnalyzeTelemetryUseCase(telemetryRepository, logger);
@@ -85,7 +91,7 @@ export function createAppContext(): AppContext {
     listTelemetryUseCase,
     listEventsUseCase,
     searchDocsUseCase,
-    llmClient
+    llmClient,
   };
 }
 
@@ -104,5 +110,3 @@ export * from './application/events/ListEventsUseCase.js';
 export * from './application/docs/DocsService.js';
 export * from './application/docs/SearchDocsUseCase.js';
 export * from './infrastructure/llm/LlmClient.js';
-
-

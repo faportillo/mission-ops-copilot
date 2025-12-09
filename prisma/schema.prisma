@@ -1,0 +1,38 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model TelemetrySnapshot {
+  id            String   @id
+  spacecraftId  String
+  timestamp     DateTime
+  parameters    Json
+
+  @@index([spacecraftId, timestamp])
+}
+
+model MissionEvent {
+  id            String   @id
+  spacecraftId  String
+  timestamp     DateTime
+  type          String
+  severity      String
+  message       String
+  metadata      Json?
+
+  @@index([spacecraftId, timestamp])
+}
+
+model OpsDocument {
+  id       String   @id
+  title    String
+  content  String
+  tags     String[]
+}
+
+

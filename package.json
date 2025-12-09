@@ -11,6 +11,9 @@
     "dev:cli": "tsx src/interfaces/cli/index.ts",
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/server.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate:dev": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
     "lint": "eslint . --ext .ts",
     "format": "prettier --check .",
     "format:fix": "prettier --write .",
@@ -26,6 +29,7 @@
     "dotenv": "^16.4.5",
     "fastify": "^4.28.1",
     "pino": "^9.3.2",
+    "@prisma/client": "^5.20.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
@@ -36,11 +40,10 @@
     "execa": "^8.0.1",
     "eslint": "^9.14.0",
     "pino-pretty": "^11.2.2",
+    "prisma": "^5.20.0",
     "prettier": "^3.3.2",
     "tsx": "^4.16.2",
     "typescript": "^5.6.2",
     "vitest": "^2.0.1"
   }
 }
-
-
