@@ -26,6 +26,8 @@ import type { SpacecraftConfigRepository } from './infrastructure/persistence/Sp
 import { PostgresSpacecraftConfigRepository } from './infrastructure/persistence/db/PostgresSpacecraftConfigRepository.js';
 import { InMemorySpacecraftConfigRepository } from './infrastructure/persistence/inMemory/InMemorySpacecraftConfigRepository.js';
 import { SpacecraftConfigService } from './application/spacecraft/SpacecraftConfigService.js';
+import { ListSpacecraftConfigUseCase } from './application/spacecraft/ListSpacecraftConfigUseCase.js';
+import { CountSpacecraftConfigsUseCase } from './application/spacecraft/CountSpacecraftConfigsUseCase.js';
 
 export type AppContext = {
   config: AppConfig;
@@ -43,6 +45,8 @@ export type AppContext = {
   listTelemetryUseCase: ListTelemetryUseCase;
   listEventsUseCase: ListEventsUseCase;
   searchDocsUseCase: SearchDocsUseCase;
+  listSpacecraftConfigUseCase: ListSpacecraftConfigUseCase;
+  countSpacecraftConfigsUseCase: CountSpacecraftConfigsUseCase;
 };
 
 export function createAppContext(passedConfig?: AppConfig): AppContext {
@@ -87,6 +91,11 @@ export function createAppContext(passedConfig?: AppConfig): AppContext {
   const docsService = new DocsService(docsRepository);
   const searchDocsUseCase = new SearchDocsUseCase(docsRepository);
 
+  const listSpacecraftConfigUseCase = new ListSpacecraftConfigUseCase(spacecraftConfigRepository);
+  const countSpacecraftConfigsUseCase = new CountSpacecraftConfigsUseCase(
+    spacecraftConfigRepository,
+  );
+
   return {
     config,
     logger,
@@ -103,6 +112,8 @@ export function createAppContext(passedConfig?: AppConfig): AppContext {
     listTelemetryUseCase,
     listEventsUseCase,
     searchDocsUseCase,
+    listSpacecraftConfigUseCase,
+    countSpacecraftConfigsUseCase,
   };
 }
 

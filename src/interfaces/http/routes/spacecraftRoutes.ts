@@ -2,7 +2,8 @@ import type { FastifyInstance } from 'fastify';
 import type { AppContext } from '../../../index.js';
 
 export async function spacecraftRoutes(app: FastifyInstance, ctx: AppContext) {
-  const { spacecraftConfigService } = ctx;
+  const { spacecraftConfigService, listSpacecraftConfigUseCase, countSpacecraftConfigsUseCase } =
+    ctx;
 
   app.withTypeProvider().get('/spacecraft', {}, async (req) => {
     // Parse pagination parameters (limit, offset) from query string
@@ -13,8 +14,8 @@ export async function spacecraftRoutes(app: FastifyInstance, ctx: AppContext) {
 
     // Fetch total count and corresponding page of configs
     const [items, total] = await Promise.all([
-      spacecraftConfigService.listConfigsPaged({ limit: safeLimit, offset: safeOffset }),
-      spacecraftConfigService.countConfigs(),
+      listSpacecraftConfigUseCase.execute({ limit: safeLimit, offset: safeOffset }),
+      countSpacecraftConfigsUseCase.execute(),
     ]);
     return {
       total,

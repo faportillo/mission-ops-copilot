@@ -1,4 +1,4 @@
-import type { SpacecraftConfig } from '@prisma/client';
+import type { SpacecraftConfig } from '../../domain/spacecraft/SpacecraftConfig.js';
 
 export interface SpacecraftConfigRepository {
   getBySpacecraftId(spacecraftId: string): Promise<SpacecraftConfig | null>;
