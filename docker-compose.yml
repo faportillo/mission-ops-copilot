@@ -1,13 +1,11 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:16-alpine
     container_name: missionops-postgres
     environment:
-      POSTGRES_DB: mission_ops
-      POSTGRES_USER: mission
-      POSTGRES_PASSWORD: mission
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - '5432:5432'
     healthcheck:
@@ -25,9 +23,10 @@ services:
       db:
         condition: service_healthy
     environment:
-      NODE_ENV: production
-      DATABASE_URL: postgres://mission:mission@db:5432/mission_ops?schema=public
-    command: ['pnpm', 'prisma', 'db', 'push', '--skip-generate']
+      NODE_ENV: ${NODE_ENV}
+      # Use the in-network DB host, not localhost
+      DATABASE_URL: ${DATABASE_URL_CONTAINER:-postgres://mission:mission@db:5432/mission_ops?schema=public}
+    command: ['pnpm', 'prisma', 'migrate', 'deploy']
 
   app:
     build: .
@@ -38,11 +37,12 @@ services:
       migrate:
         condition: service_completed_successfully
     environment:
-      NODE_ENV: production
-      LOG_LEVEL: info
-      PORT: 3000
-      DATA_BACKEND: postgres
-      DATABASE_URL: postgres://mission:mission@db:5432/mission_ops?schema=public
+      NODE_ENV: ${NODE_ENV}
+      LOG_LEVEL: ${LOG_LEVEL}
+      PORT: ${PORT}
+      DATA_BACKEND: ${DATA_BACKEND}
+      # Use the in-network DB host, not localhost
+      DATABASE_URL: ${DATABASE_URL_CONTAINER:-postgres://mission:mission@db:5432/mission_ops?schema=public}
     ports:
       - '3000:3000'
 

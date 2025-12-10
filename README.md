@@ -67,16 +67,72 @@ pnpm dev:cli -- analyze-telemetry --spacecraft-id SC-001 --limit 10
 
 ### Docker
 
-- Build and run with Postgres automatically:
+- Prereqs: Docker Desktop (or Docker Engine + Compose).
+
+- One-time setup:
+
+  ```bash
+  cp example.env .env
+  # Use Postgres inside Docker
+  sed -i.bak 's/^DATA_BACKEND=.*/DATA_BACKEND=postgres/' .env
+  echo 'DATABASE_URL_CONTAINER=postgresql://mission:mission@db:5432/mission_ops?schema=public' >> .env
+  # Optional: ensure DB container credentials match compose defaults
+  echo 'POSTGRES_DB=mission_ops' >> .env
+  echo 'POSTGRES_USER=mission' >> .env
+  echo 'POSTGRES_PASSWORD=mission' >> .env
+  ```
+
+- Start stack (db + migration + app):
+
   ```bash
   docker compose up --build -d
-  # wait for services to be healthy
+  docker compose logs -f migrate
+  # Expect to see:
+  # "All migrations have been successfully applied."
+  ```
+
+- Call the API:
+
+  ```bash
   curl -s "http://localhost:3000/telemetry?spacecraftId=SC-001&limit=5"
   ```
-- Compose starts:
-  - `db` (Postgres 16)
-  - `migrate` (runs `prisma db push`)
-  - `app` (Fastify server using DATA_BACKEND=postgres)
+
+- Services:
+  - `db`: Postgres 16 with healthcheck
+  - `migrate`: runs `prisma migrate deploy` using DATABASE_URL_CONTAINER
+  - `app`: Fastify server on port 3000 (DATA_BACKEND=postgres)
+
+- Reset data (DROPS volumes):
+
+  ```bash
+  docker compose down -v && docker compose up --build -d
+  ```
+
+- If migrations fail with baseline error (P3005):
+  ```bash
+  # Option A: destructive reset
+  docker compose down -v && docker compose up -d
+  # Option B: baseline existing schema
+  docker compose run --rm migrate sh -lc \
+    'pnpm prisma migrate resolve --applied 0001_init && pnpm prisma migrate deploy'
+  ```
+
+### Prisma schema versioning
+
+- Local development:
+  - Evolve schema in `prisma/schema.prisma`
+  - Create a migration with:
+    ```bash
+    pnpm prisma:migrate:dev --name <change_description>
+    ```
+  - Commit the generated `prisma/migrations/**` files.
+- Production / Docker:
+  - The `migrate` service runs:
+    ```bash
+    pnpm prisma:migrate:deploy
+    ```
+    which applies committed migrations in order.
+  - Do not use `db push` in production; it is non-versioned.
 
 ### Architecture
 
