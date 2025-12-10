@@ -72,4 +72,53 @@ describe('HTTP telemetry routes with Postgres (Testcontainers)', () => {
 
     await app.close();
   }, 120_000);
+
+  it('POST /telemetry/batch returns count and data is queryable', async () => {
+    const url = container.getConnectionUri();
+    const cfg: AppConfig = {
+      NODE_ENV: 'test',
+      LOG_LEVEL: 'error',
+      PORT: 0,
+      DATA_BACKEND: 'postgres',
+      DATA_DIR: undefined,
+      DATABASE_URL: url,
+    };
+    const ctx = createAppContext(cfg);
+    const app = Fastify({ logger: false }).withTypeProvider();
+    await registerHttpRoutes(app, ctx);
+
+    const now = Date.now();
+    const resBatch = await app.inject({
+      method: 'POST',
+      url: '/telemetry/batch',
+      payload: {
+        spacecraftId: 'SC-IT-BATCH',
+        snapshots: [
+          {
+            spacecraftId: 'SC-IT-BATCH',
+            timestamp: new Date(now - 2000).toISOString(),
+            parameters: { temp: 50 },
+          },
+          {
+            spacecraftId: 'SC-IT-BATCH',
+            timestamp: new Date(now - 1000).toISOString(),
+            parameters: { temp: 51 },
+          },
+        ],
+      },
+    });
+    expect(resBatch.statusCode).toBe(201);
+    const json = resBatch.json() as { count: number };
+    expect(json.count).toBe(2);
+
+    const resList = await app.inject({
+      method: 'GET',
+      url: '/telemetry?spacecraftId=SC-IT-BATCH&limit=5',
+    });
+    expect(resList.statusCode).toBe(200);
+    const list = resList.json() as Array<{ id: string }>;
+    expect(list.length).toBeGreaterThanOrEqual(2);
+
+    await app.close();
+  }, 120_000);
 });

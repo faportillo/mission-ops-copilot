@@ -8,6 +8,12 @@ export const PostTelemetryBody = z.object({
 });
 export type PostTelemetryBodyType = z.infer<typeof PostTelemetryBody>;
 
+export const BatchTelemetryBody = z.object({
+  spacecraftId: z.string().min(1),
+  snapshots: z.array(PostTelemetryBody),
+});
+export type BatchTelemetryBodyType = z.infer<typeof BatchTelemetryBody>;
+
 export const GetTelemetryQuery = z.object({
   spacecraftId: z.string().min(1),
   limit: z.coerce.number().int().positive().max(100).default(20),

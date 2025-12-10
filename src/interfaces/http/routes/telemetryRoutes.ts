@@ -1,6 +1,11 @@
 import type { FastifyInstance } from 'fastify';
 import type { AppContext } from '../../../index.js';
-import { PostTelemetryBody, GetTelemetryQuery, AnalyzeTelemetryQuery } from '../http-types.js';
+import {
+  PostTelemetryBody,
+  GetTelemetryQuery,
+  AnalyzeTelemetryQuery,
+  BatchTelemetryBody,
+} from '../http-types.js';
 import { TelemetrySnapshot } from '../../../domain/telemetry/TelemetrySnapshot.js';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -24,6 +29,21 @@ export async function telemetryRoutes(app: FastifyInstance, ctx: AppContext) {
       spacecraftId: snapshot.spacecraftId,
     });
     return reply.code(201).send({ id: snapshot.id });
+  });
+
+  app.withTypeProvider().post('/telemetry/batch', {}, async (req, reply) => {
+    const body = BatchTelemetryBody.parse(req.body);
+    const snapshots = body.snapshots.map((s) => {
+      const id = s.id ?? uuidv4();
+      return TelemetrySnapshot.create({
+        id,
+        spacecraftId: s.spacecraftId,
+        timestamp: s.timestamp,
+        parameters: s.parameters,
+      });
+    });
+    await ctx.telemetryService.saveSnapshots(snapshots);
+    return reply.code(201).send({ count: snapshots.length });
   });
 
   app.withTypeProvider().get('/telemetry', {}, async (req) => {

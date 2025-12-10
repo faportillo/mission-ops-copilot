@@ -44,4 +44,46 @@ describe('HTTP telemetry routes', () => {
     const list = resList.json() as any[];
     expect(list.length).toBeGreaterThan(0);
   });
+
+  it('accepts batch telemetry and returns count', async () => {
+    const app = Fastify().withTypeProvider();
+    const ctx = createAppContext(cfg);
+    await registerHttpRoutes(app, ctx);
+
+    const now = Date.now();
+    const resBatch = await app.inject({
+      method: 'POST',
+      url: '/telemetry/batch',
+      payload: {
+        spacecraftId: 'SC-BATCH',
+        snapshots: [
+          {
+            spacecraftId: 'SC-BATCH',
+            timestamp: new Date(now - 1000).toISOString(),
+            parameters: { temp: 20 },
+          },
+          {
+            spacecraftId: 'SC-BATCH',
+            timestamp: new Date(now).toISOString(),
+            parameters: { temp: 21 },
+          },
+        ],
+      },
+    });
+    if (resBatch.statusCode !== 201) {
+      // eslint-disable-next-line no-console
+      console.error('BATCH body:', resBatch.body);
+    }
+    expect(resBatch.statusCode).toBe(201);
+    const body = resBatch.json() as { count: number };
+    expect(body.count).toBe(2);
+
+    const resList = await app.inject({
+      method: 'GET',
+      url: '/telemetry?spacecraftId=SC-BATCH&limit=10',
+    });
+    expect(resList.statusCode).toBe(200);
+    const list = resList.json() as any[];
+    expect(list.length).toBeGreaterThanOrEqual(2);
+  });
 });
