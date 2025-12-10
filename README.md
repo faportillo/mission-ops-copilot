@@ -59,9 +59,24 @@ pnpm dev:cli -- analyze-telemetry --spacecraft-id SC-001 --limit 10
 - `pnpm dev:cli` – run CLI entrypoint
 - `pnpm build` – compile to `dist/`
 - `pnpm start` – run compiled server
+- `pnpm prisma:generate` – generate Prisma client
+- `pnpm prisma:migrate:dev` – run dev migrations (or `db push`)
 - `pnpm test` – run tests
 - `pnpm lint` – eslint
 - `pnpm format` – prettier check
+
+### Docker
+
+- Build and run with Postgres automatically:
+  ```bash
+  docker compose up --build -d
+  # wait for services to be healthy
+  curl -s "http://localhost:3000/telemetry?spacecraftId=SC-001&limit=5"
+  ```
+- Compose starts:
+  - `db` (Postgres 16)
+  - `migrate` (runs `prisma db push`)
+  - `app` (Fastify server using DATA_BACKEND=postgres)
 
 ### Architecture
 

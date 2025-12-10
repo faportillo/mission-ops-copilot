@@ -1,0 +1,15 @@
+node_modules
+dist
+.pnpm-store
+.git
+.gitignore
+Dockerfile
+README.md
+.env
+coverage
+.vscode
+.idea
+tmp
+*.log
+
+
