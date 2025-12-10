@@ -3,12 +3,14 @@ import { AnalyzeTelemetryUseCase } from '../../../src/application/telemetry/Anal
 import { InMemoryTelemetryRepository } from '../../../src/infrastructure/persistence/inMemory/InMemoryTelemetryRepository.js';
 import { TelemetrySnapshot } from '../../../src/domain/telemetry/TelemetrySnapshot.js';
 import { getLogger } from '../../../src/logging/logger.js';
+import { InMemorySpacecraftConfigRepository } from '../../../src/infrastructure/persistence/inMemory/InMemorySpacecraftConfigRepository.js';
 
 describe('AnalyzeTelemetryUseCase', () => {
   it('detects threshold anomalies', async () => {
     const repo = new InMemoryTelemetryRepository();
     const logger = getLogger();
-    const uc = new AnalyzeTelemetryUseCase(repo, logger);
+    const cfgRepo = new InMemorySpacecraftConfigRepository();
+    const uc = new AnalyzeTelemetryUseCase(repo, cfgRepo, logger);
     const ts1 = TelemetrySnapshot.create({
       id: 't1',
       spacecraftId: 'SC-1',
@@ -23,11 +25,8 @@ describe('AnalyzeTelemetryUseCase', () => {
     });
     await repo.save(ts1);
     await repo.save(ts2);
-    const anomalies = await uc.execute({
-      spacecraftId: 'SC-1',
-      limit: 5,
-      thresholds: { temp: { max: 50 } }
-    });
+    await cfgRepo.upsert('SC-1', { parameters: { temp: { warnHigh: 50 } } });
+    const anomalies = await uc.execute({ spacecraftId: 'SC-1', limit: 5 });
     expect(anomalies.length).toBeGreaterThan(0);
   });
 });

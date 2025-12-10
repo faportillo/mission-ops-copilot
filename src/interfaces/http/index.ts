@@ -4,6 +4,7 @@ import type { AppContext } from '../../index.js';
 import { telemetryRoutes } from './routes/telemetryRoutes.js';
 import { eventRoutes } from './routes/eventRoutes.js';
 import { docsRoutes } from './routes/docsRoutes.js';
+import { spacecraftRoutes } from './routes/spacecraftRoutes.js';
 import { DomainError } from '../../domain/common/DomainError.js';
 
 export async function registerHttpRoutes(app: FastifyInstance, ctx: AppContext) {
@@ -30,4 +31,5 @@ export async function registerHttpRoutes(app: FastifyInstance, ctx: AppContext) 
   await telemetryRoutes(app, ctx);
   await eventRoutes(app, ctx);
   await docsRoutes(app, ctx);
+  await spacecraftRoutes(app, ctx);
 }

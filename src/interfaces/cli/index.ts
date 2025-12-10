@@ -12,14 +12,12 @@ async function main(argv: string[]) {
   const { analyzeTelemetryCommand } = await import('./commands/analyze-telemetry.js');
   const { listEventsCommand } = await import('./commands/list-events.js');
   const { searchDocsCommand } = await import('./commands/search-docs.js');
-  const { generateBriefCommand } = await import('./commands/generate-brief.js');
 
   program.addCommand(ingestTelemetryCommand(ctx));
   program.addCommand(listTelemetryCommand(ctx));
   program.addCommand(analyzeTelemetryCommand(ctx));
   program.addCommand(listEventsCommand(ctx));
   program.addCommand(searchDocsCommand(ctx));
-  program.addCommand(generateBriefCommand(ctx));
 
   await program.parseAsync(argv);
 }
@@ -29,5 +27,3 @@ main(process.argv).catch((err) => {
   console.error(err);
   process.exit(1);
 });
-
-

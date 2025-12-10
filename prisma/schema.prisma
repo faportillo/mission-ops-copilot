@@ -7,6 +7,29 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// New model to register spacecraft
+model Spacecraft {
+  id          String   @id @default(cuid())
+  name        String
+  missionType String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  spacecraftConfig SpacecraftConfig?
+}
+
+// Per-spacecraft configuration stored as JSONB
+model SpacecraftConfig {
+  id           String    @id @default(cuid())
+  spacecraftId String    @unique
+  config       Json
+  status       String    @default("approved")
+  source       String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  spacecraft   Spacecraft @relation(fields: [spacecraftId], references: [id])
+}
+
 model TelemetrySnapshot {
   id            String   @id
   spacecraftId  String

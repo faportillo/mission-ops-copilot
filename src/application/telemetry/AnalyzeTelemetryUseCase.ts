@@ -1,65 +1,82 @@
 import type { TelemetryRepository } from '../../infrastructure/persistence/TelemetryRepository.js';
 import type { TelemetryAnomaly } from '../../domain/telemetry/TelemetryAnomaly.js';
 import type { Logger } from '../../logging/logger.js';
+import type { SpacecraftConfigRepository } from '../../infrastructure/persistence/SpacecraftConfigRepository.js';
+import { extractAnomalyRules } from './anomalyRulesAdapter.js';
 
 export type AnalyzeTelemetryInput = {
   spacecraftId: string;
   limit?: number;
-  thresholds?: Record<string, { min?: number; max?: number; delta?: number }>;
 };
 
 export class AnalyzeTelemetryUseCase {
-  constructor(private readonly repo: TelemetryRepository, private readonly logger: Logger) {}
+  constructor(
+    private readonly repo: TelemetryRepository,
+    private readonly spacecraftConfigRepo: SpacecraftConfigRepository,
+    private readonly logger: Logger,
+  ) {}
 
   async execute(input: AnalyzeTelemetryInput): Promise<TelemetryAnomaly[]> {
     const limit = input.limit ?? 20;
     const snapshots = await this.repo.findRecent(input.spacecraftId, limit);
     const anomalies: TelemetryAnomaly[] = [];
-    const thresholds = input.thresholds ?? {};
     if (snapshots.length === 0) return anomalies;
+
+    const cfg = await this.spacecraftConfigRepo.getBySpacecraftId(input.spacecraftId);
+    const rules = extractAnomalyRules(cfg?.config ?? {});
 
     for (let i = 0; i < snapshots.length; i++) {
       const current = snapshots[i];
-      const previous = snapshots[i + 1];
       for (const [key, value] of Object.entries(current.parameters)) {
-        const th = thresholds[key];
-        if (typeof value === 'number' && th) {
-          if (typeof th.min === 'number' && value < th.min) {
+        const rule = rules.parameters[key];
+        if (typeof value === 'number' && rule) {
+          const num = value as number;
+          if (typeof rule.critLow === 'number' && num < rule.critLow) {
             anomalies.push({
-              id: `${current.id}:${key}:MIN`,
+              id: `${current.id}:${key}:CRIT_LOW`,
               spacecraftId: current.spacecraftId,
               timestamp: current.timestamp,
               parameter: key,
-              value,
+              value: num,
               severity: 'HIGH',
-              description: `Parameter ${key} below min ${th.min}`
+              description: `Parameter ${key} below critLow ${rule.critLow}`,
             });
-          } else if (typeof th.max === 'number' && value > th.max) {
+            continue;
+          }
+          if (typeof rule.warnLow === 'number' && num < rule.warnLow) {
             anomalies.push({
-              id: `${current.id}:${key}:MAX`,
+              id: `${current.id}:${key}:WARN_LOW`,
               spacecraftId: current.spacecraftId,
               timestamp: current.timestamp,
               parameter: key,
-              value,
-              severity: 'HIGH',
-              description: `Parameter ${key} above max ${th.max}`
+              value: num,
+              severity: 'MEDIUM',
+              description: `Parameter ${key} below warnLow ${rule.warnLow}`,
             });
-          } else if (typeof th.delta === 'number' && previous) {
-            const prevVal = previous.parameters[key];
-            if (typeof prevVal === 'number') {
-              const d = Math.abs(value - prevVal);
-              if (d > th.delta) {
-                anomalies.push({
-                  id: `${current.id}:${key}:DELTA`,
-                  spacecraftId: current.spacecraftId,
-                  timestamp: current.timestamp,
-                  parameter: key,
-                  value,
-                  severity: 'MEDIUM',
-                  description: `Parameter ${key} delta ${d} exceeds ${th.delta}`
-                });
-              }
-            }
+            continue;
+          }
+          if (typeof rule.critHigh === 'number' && num > rule.critHigh) {
+            anomalies.push({
+              id: `${current.id}:${key}:CRIT_HIGH`,
+              spacecraftId: current.spacecraftId,
+              timestamp: current.timestamp,
+              parameter: key,
+              value: num,
+              severity: 'HIGH',
+              description: `Parameter ${key} above critHigh ${rule.critHigh}`,
+            });
+            continue;
+          }
+          if (typeof rule.warnHigh === 'number' && num > rule.warnHigh) {
+            anomalies.push({
+              id: `${current.id}:${key}:WARN_HIGH`,
+              spacecraftId: current.spacecraftId,
+              timestamp: current.timestamp,
+              parameter: key,
+              value: num,
+              severity: 'MEDIUM',
+              description: `Parameter ${key} above warnHigh ${rule.warnHigh}`,
+            });
           }
         }
       }
@@ -71,5 +88,4 @@ export class AnalyzeTelemetryUseCase {
     return anomalies;
   }
 }
-
 

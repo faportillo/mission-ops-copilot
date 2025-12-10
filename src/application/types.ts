@@ -3,7 +3,6 @@ import type { EventRepository } from '../infrastructure/persistence/EventReposit
 import type { DocsRepository } from '../infrastructure/persistence/DocsRepository.js';
 import type { Logger } from '../logging/logger.js';
 import type { TimeProvider } from '../infrastructure/time/TimeProvider.js';
-import type { LlmClient } from '../infrastructure/llm/LlmClient.js';
 
 export type ApplicationDeps = {
   telemetryRepository: TelemetryRepository;
@@ -11,7 +10,4 @@ export type ApplicationDeps = {
   docsRepository: DocsRepository;
   logger: Logger;
   time: TimeProvider;
-  llm: LlmClient;
 };
-
-

@@ -15,8 +15,6 @@ import { EventService } from './application/events/EventService.js';
 import { ListEventsUseCase } from './application/events/ListEventsUseCase.js';
 import { DocsService } from './application/docs/DocsService.js';
 import { SearchDocsUseCase } from './application/docs/SearchDocsUseCase.js';
-import { OpenAiLlmClient } from './infrastructure/llm/OpenAiLlmClient.js';
-import type { LlmClient } from './infrastructure/llm/LlmClient.js';
 import type { TelemetryRepository } from './infrastructure/persistence/TelemetryRepository.js';
 import type { EventRepository } from './infrastructure/persistence/EventRepository.js';
 import type { DocsRepository } from './infrastructure/persistence/DocsRepository.js';
@@ -24,6 +22,10 @@ import type { Logger } from './logging/logger.js';
 import { PostgresTelemetryRepository } from './infrastructure/persistence/db/PostgresTelemetryRepository.js';
 import { PostgresEventRepository } from './infrastructure/persistence/db/PostgresEventRepository.js';
 import { PostgresDocsRepository } from './infrastructure/persistence/db/PostgresDocsRepository.js';
+import type { SpacecraftConfigRepository } from './infrastructure/persistence/SpacecraftConfigRepository.js';
+import { PostgresSpacecraftConfigRepository } from './infrastructure/persistence/db/PostgresSpacecraftConfigRepository.js';
+import { InMemorySpacecraftConfigRepository } from './infrastructure/persistence/inMemory/InMemorySpacecraftConfigRepository.js';
+import { SpacecraftConfigService } from './application/spacecraft/SpacecraftConfigService.js';
 
 export type AppContext = {
   config: AppConfig;
@@ -32,14 +34,15 @@ export type AppContext = {
   telemetryRepository: TelemetryRepository;
   eventRepository: EventRepository;
   docsRepository: DocsRepository;
+  spacecraftConfigRepository: SpacecraftConfigRepository;
   telemetryService: TelemetryService;
   eventService: EventService;
   docsService: DocsService;
+  spacecraftConfigService: SpacecraftConfigService;
   analyzeTelemetryUseCase: AnalyzeTelemetryUseCase;
   listTelemetryUseCase: ListTelemetryUseCase;
   listEventsUseCase: ListEventsUseCase;
   searchDocsUseCase: SearchDocsUseCase;
-  llmClient: LlmClient;
 };
 
 export function createAppContext(passedConfig?: AppConfig): AppContext {
@@ -50,23 +53,32 @@ export function createAppContext(passedConfig?: AppConfig): AppContext {
   let telemetryRepository: TelemetryRepository;
   let eventRepository: EventRepository;
   let docsRepository: DocsRepository;
+  let spacecraftConfigRepository: SpacecraftConfigRepository;
 
   if (config.DATA_BACKEND === 'file' && config.DATA_DIR) {
     telemetryRepository = new FileTelemetryRepository(config.DATA_DIR);
     eventRepository = new FileEventRepository(config.DATA_DIR);
     docsRepository = new FileDocsRepository(config.DATA_DIR);
+    spacecraftConfigRepository = new InMemorySpacecraftConfigRepository();
   } else if (config.DATA_BACKEND === 'postgres') {
     telemetryRepository = new PostgresTelemetryRepository();
     eventRepository = new PostgresEventRepository();
     docsRepository = new PostgresDocsRepository();
+    spacecraftConfigRepository = new PostgresSpacecraftConfigRepository();
   } else {
     telemetryRepository = new InMemoryTelemetryRepository();
     eventRepository = new InMemoryEventRepository();
     docsRepository = new InMemoryDocsRepository();
+    spacecraftConfigRepository = new InMemorySpacecraftConfigRepository();
   }
 
   const telemetryService = new TelemetryService(telemetryRepository, logger);
-  const analyzeTelemetryUseCase = new AnalyzeTelemetryUseCase(telemetryRepository, logger);
+  const spacecraftConfigService = new SpacecraftConfigService(spacecraftConfigRepository);
+  const analyzeTelemetryUseCase = new AnalyzeTelemetryUseCase(
+    telemetryRepository,
+    spacecraftConfigRepository,
+    logger,
+  );
   const listTelemetryUseCase = new ListTelemetryUseCase(telemetryRepository);
 
   const eventService = new EventService(eventRepository);
@@ -75,8 +87,6 @@ export function createAppContext(passedConfig?: AppConfig): AppContext {
   const docsService = new DocsService(docsRepository);
   const searchDocsUseCase = new SearchDocsUseCase(docsRepository);
 
-  const llmClient = new OpenAiLlmClient(logger, config.OPENAI_API_KEY);
-
   return {
     config,
     logger,
@@ -84,14 +94,15 @@ export function createAppContext(passedConfig?: AppConfig): AppContext {
     telemetryRepository,
     eventRepository,
     docsRepository,
+    spacecraftConfigRepository,
     telemetryService,
     eventService,
     docsService,
+    spacecraftConfigService,
     analyzeTelemetryUseCase,
     listTelemetryUseCase,
     listEventsUseCase,
     searchDocsUseCase,
-    llmClient,
   };
 }
 
@@ -109,4 +120,3 @@ export * from './application/events/EventService.js';
 export * from './application/events/ListEventsUseCase.js';
 export * from './application/docs/DocsService.js';
 export * from './application/docs/SearchDocsUseCase.js';
-export * from './infrastructure/llm/LlmClient.js';
