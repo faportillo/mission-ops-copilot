@@ -1,0 +1,4 @@
+services:
+  db:
+    volumes:
+      - ./prisma/init.dev.sql:/docker-entrypoint-initdb.d/01-init.sql:ro

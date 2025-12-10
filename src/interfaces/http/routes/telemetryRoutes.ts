@@ -5,51 +5,47 @@ import { TelemetrySnapshot } from '../../../domain/telemetry/TelemetrySnapshot.j
 import { v4 as uuidv4 } from 'uuid';
 
 export async function telemetryRoutes(app: FastifyInstance, ctx: AppContext) {
-  app.withTypeProvider().post(
-    '/telemetry',
-    {
-      schema: {
-        body: PostTelemetryBody,
-      },
-    },
-    async (req, reply) => {
-      const body = PostTelemetryBody.parse(req.body);
-      const id = body.id ?? uuidv4();
-      const snapshot = TelemetrySnapshot.create({
-        id,
-        spacecraftId: body.spacecraftId,
-        timestamp: body.timestamp,
-        parameters: body.parameters,
-      });
-      await ctx.telemetryService.saveSnapshot(snapshot);
-      return reply.code(201).send({ id: snapshot.id });
-    },
-  );
+  app.withTypeProvider().post('/telemetry', {}, async (req, reply) => {
+    const body = PostTelemetryBody.parse(req.body);
+    ctx.logger.info('POST /telemetry received', {
+      spacecraftId: body.spacecraftId,
+      timestamp: body.timestamp?.toISOString?.() ?? String(body.timestamp),
+    });
+    const id = body.id ?? uuidv4();
+    const snapshot = TelemetrySnapshot.create({
+      id,
+      spacecraftId: body.spacecraftId,
+      timestamp: body.timestamp,
+      parameters: body.parameters,
+    });
+    await ctx.telemetryService.saveSnapshot(snapshot);
+    ctx.logger.info('POST /telemetry saved', {
+      id: snapshot.id,
+      spacecraftId: snapshot.spacecraftId,
+    });
+    return reply.code(201).send({ id: snapshot.id });
+  });
 
-  app.withTypeProvider().get(
-    '/telemetry',
-    {
-      schema: { querystring: GetTelemetryQuery },
-    },
-    async (req) => {
-      const query = GetTelemetryQuery.parse(req.query);
-      const list = await ctx.listTelemetryUseCase.execute(query.spacecraftId, query.limit);
-      return list;
-    },
-  );
+  app.withTypeProvider().get('/telemetry', {}, async (req) => {
+    const query = GetTelemetryQuery.parse(req.query);
+    const list = await ctx.listTelemetryUseCase.execute(query.spacecraftId, query.limit);
+    ctx.logger.debug('GET /telemetry list', {
+      spacecraftId: query.spacecraftId,
+      count: list.length,
+    });
+    return list;
+  });
 
-  app.withTypeProvider().get(
-    '/telemetry/analyze',
-    {
-      schema: { querystring: AnalyzeTelemetryQuery },
-    },
-    async (req) => {
-      const query = AnalyzeTelemetryQuery.parse(req.query);
-      const anomalies = await ctx.analyzeTelemetryUseCase.execute({
-        spacecraftId: query.spacecraftId,
-        limit: query.limit,
-      });
-      return anomalies;
-    },
-  );
+  app.withTypeProvider().get('/telemetry/analyze', {}, async (req) => {
+    const query = AnalyzeTelemetryQuery.parse(req.query);
+    const anomalies = await ctx.analyzeTelemetryUseCase.execute({
+      spacecraftId: query.spacecraftId,
+      limit: query.limit,
+    });
+    ctx.logger.info('GET /telemetry/analyze result', {
+      spacecraftId: query.spacecraftId,
+      anomalies: anomalies.length,
+    });
+    return anomalies;
+  });
 }

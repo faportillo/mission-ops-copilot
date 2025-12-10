@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { execa } from 'execa';
-import { PostgreSqlContainer } from '@testcontainers/postgresql';
+import { PostgreSqlContainer, StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { PostgresTelemetryRepository } from '../../../src/infrastructure/persistence/db/PostgresTelemetryRepository.js';
 import { TelemetrySnapshot } from '../../../src/domain/telemetry/TelemetrySnapshot.js';
 import type { AppConfig } from '../../../src/config/schema.js';
 import { createAppContext } from '../../../src/index.js';
 import { getPrisma } from '../../../src/infrastructure/db/prisma.js';
 
-let container: PostgreSqlContainer;
+let container: StartedPostgreSqlContainer;
 
 describe('PostgresTelemetryRepository (integration)', () => {
   beforeAll(async () => {

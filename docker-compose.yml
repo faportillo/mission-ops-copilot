@@ -9,7 +9,7 @@ services:
     ports:
       - '5432:5432'
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U mission -d mission_ops']
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d mission_ops']
       interval: 5s
       timeout: 5s
       retries: 10
@@ -24,8 +24,8 @@ services:
         condition: service_healthy
     environment:
       NODE_ENV: ${NODE_ENV}
-      # Use the in-network DB host, not localhost
-      DATABASE_URL: ${DATABASE_URL_CONTAINER:-postgres://mission:mission@db:5432/mission_ops?schema=public}
+      # Migrator uses elevated role
+      DATABASE_URL: ${DATABASE_URL_MIGRATOR_CONTAINER:-postgresql://mission_migrator:mission_migrator@db:5432/mission_ops?schema=app}
     command: ['pnpm', 'prisma', 'migrate', 'deploy']
 
   app:
@@ -41,8 +41,8 @@ services:
       LOG_LEVEL: ${LOG_LEVEL}
       PORT: ${PORT}
       DATA_BACKEND: ${DATA_BACKEND}
-      # Use the in-network DB host, not localhost
-      DATABASE_URL: ${DATABASE_URL_CONTAINER:-postgres://mission:mission@db:5432/mission_ops?schema=public}
+      # App uses least-privilege role
+      DATABASE_URL: ${DATABASE_URL_APP_CONTAINER:-postgresql://mission_app:mission_app@db:5432/mission_ops?schema=app}
     ports:
       - '3000:3000'
 

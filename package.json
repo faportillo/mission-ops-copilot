@@ -30,11 +30,13 @@
     "dotenv": "^16.4.5",
     "fastify": "^4.28.1",
     "pino": "^9.3.2",
+    "uuid": "^9.0.1",
     "@prisma/client": "^5.20.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^20.12.12",
+    "@types/uuid": "^9.0.7",
     "@typescript-eslint/eslint-plugin": "^8.13.0",
     "@typescript-eslint/parser": "^8.13.0",
     "@vitest/coverage-v8": "^2.0.1",

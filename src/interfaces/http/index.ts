@@ -15,8 +15,16 @@ export async function registerHttpRoutes(app: FastifyInstance, ctx: AppContext) 
     if (error instanceof DomainError) {
       return reply.status(400).send({ error: error.name, message: error.message });
     }
+    const payload =
+      process.env.NODE_ENV === 'test'
+        ? {
+            error: 'InternalServerError',
+            message: String(error?.message ?? error),
+            stack: (error as any)?.stack,
+          }
+        : { error: 'InternalServerError' };
     req.log.error({ err: error }, 'Unhandled error');
-    return reply.status(500).send({ error: 'InternalServerError' });
+    return reply.status(500).send(payload);
   });
 
   await telemetryRoutes(app, ctx);

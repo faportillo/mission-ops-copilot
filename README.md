@@ -85,7 +85,8 @@ pnpm dev:cli -- analyze-telemetry --spacecraft-id SC-001 --limit 10
 - Start stack (db + migration + app):
 
   ```bash
-  docker compose up --build -d
+  # Dev (with init script and dev roles)
+  docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build -d
   docker compose logs -f migrate
   # Expect to see:
   # "All migrations have been successfully applied."
@@ -99,19 +100,21 @@ pnpm dev:cli -- analyze-telemetry --spacecraft-id SC-001 --limit 10
 
 - Services:
   - `db`: Postgres 16 with healthcheck
-  - `migrate`: runs `prisma migrate deploy` using DATABASE_URL_CONTAINER
-  - `app`: Fastify server on port 3000 (DATA_BACKEND=postgres)
+  - `migrate`: runs `prisma migrate deploy` using DATABASE_URL_MIGRATOR_CONTAINER (elevated)
+  - `app`: Fastify server on port 3000 (DATA_BACKEND=postgres) using DATABASE_URL_APP_CONTAINER (least-privilege)
 
 - Reset data (DROPS volumes):
 
   ```bash
-  docker compose down -v && docker compose up --build -d
+  docker compose -f docker-compose.yml -f docker-compose.dev.yml down -v
+  docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build -d
   ```
 
 - If migrations fail with baseline error (P3005):
   ```bash
   # Option A: destructive reset
-  docker compose down -v && docker compose up -d
+  docker compose -f docker-compose.yml -f docker-compose.dev.yml down -v && \
+  docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
   # Option B: baseline existing schema
   docker compose run --rm migrate sh -lc \
     'pnpm prisma migrate resolve --applied 0001_init && pnpm prisma migrate deploy'
@@ -133,6 +136,22 @@ pnpm dev:cli -- analyze-telemetry --spacecraft-id SC-001 --limit 10
     ```
     which applies committed migrations in order.
   - Do not use `db push` in production; it is non-versioned.
+
+### Dev least-privilege Postgres
+
+- Dev compose initializes two roles and a dedicated schema `app` via `prisma/init.dev.sql`:
+  - `mission_migrator`: owner of schema `app`, allowed to CREATE/ALTER (migrations)
+  - `mission_app`: DML-only on `app` objects (SELECT/INSERT/UPDATE/DELETE)
+- Env URLs:
+  - `DATABASE_URL_MIGRATOR_CONTAINER=postgresql://mission_migrator:mission_migrator@db:5432/mission_ops?schema=app`
+  - `DATABASE_URL_APP_CONTAINER=postgresql://mission_app:mission_app@db:5432/mission_ops?schema=app`
+
+### Production
+
+- Use only `docker-compose.yml` (do not include the dev override).
+- Provision roles/schema outside of compose (IaC/DBA). Set:
+  - DATABASE_URL for your migration job to the migrator role
+  - DATABASE_URL for the app deployment to the app role
 
 ### Architecture
 
