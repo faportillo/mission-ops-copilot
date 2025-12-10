@@ -37,7 +37,6 @@ describe('HTTP telemetry routes with Postgres (Testcontainers)', () => {
       DATA_BACKEND: 'postgres',
       DATA_DIR: undefined,
       DATABASE_URL: url,
-      OPENAI_API_KEY: undefined,
     };
 
     const ctx = createAppContext(cfg);

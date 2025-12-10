@@ -8,7 +8,6 @@ export const ConfigSchema = z
     DATA_BACKEND: z.enum(['in-memory', 'file', 'postgres']).default('in-memory'),
     DATA_DIR: z.string().optional(),
     DATABASE_URL: z.string().url().optional(),
-    OPENAI_API_KEY: z.string().optional(),
   })
   .refine(
     (cfg) => {

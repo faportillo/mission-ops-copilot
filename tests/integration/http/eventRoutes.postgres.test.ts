@@ -44,7 +44,6 @@ describe('HTTP event routes with Postgres (Testcontainers)', () => {
       DATA_BACKEND: 'postgres',
       DATA_DIR: undefined,
       DATABASE_URL: url,
-      OPENAI_API_KEY: undefined,
     };
     const ctx = createAppContext(cfg);
     const app = Fastify({ logger: false }).withTypeProvider();

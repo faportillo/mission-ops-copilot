@@ -1,6 +1,6 @@
 ## Mission Ops Copilot
 
-A TypeScript backend service and CLI for spacecraft mission operations, built with Fastify, Commander, Zod, and a clean hexagonal architecture. It ingests telemetry snapshots, stores mission events and docs, and exposes use cases via HTTP and CLI. Ready to extend with real LLMs and databases.
+A TypeScript backend service and CLI for spacecraft mission operations, built with Fastify, Commander, Zod, and a clean hexagonal architecture. It ingests telemetry snapshots, stores mission events and docs, and exposes deterministic anomaly detection via HTTP and CLI. This repo is a stable, deterministic backend focused on data and analysis.
 
 ### Features
 
@@ -11,6 +11,13 @@ A TypeScript backend service and CLI for spacecraft mission operations, built wi
 - Config via dotenv + Zod, strict TypeScript
 - Logging via Pino wrapper, testable time provider
 - Vitest unit and integration tests
+
+### Core capabilities
+
+- Register spacecraft and store per-spacecraft JSONB config (Postgres)
+- Ingest telemetry snapshots per spacecraft
+- Deterministic anomaly detection using config-defined parameter thresholds
+- Clean REST routes and CLI around telemetry, events, docs, and spacecraft configs
 
 ### Getting Started
 
@@ -42,8 +49,17 @@ A TypeScript backend service and CLI for spacecraft mission operations, built wi
     -d '{"spacecraftId":"SC-001","timestamp":"2025-01-01T00:00:00Z","parameters":{"temp":42,"mode":"CRUISE"}}'
   ```
 - Analyze telemetry:
+
   ```bash
   curl "http://localhost:3000/telemetry/analyze?spacecraftId=SC-001&limit=5"
+  ```
+
+- Spacecraft config (get/set):
+  ```bash
+  curl "http://localhost:3000/spacecraft/SC-001/config"
+  curl -X PUT http://localhost:3000/spacecraft/SC-001/config \
+    -H 'content-type: application/json' \
+    -d '{"parameters":{"temp":{"warnHigh":45,"critHigh":70}}}'
   ```
 
 ### Example CLI Usage
@@ -157,12 +173,11 @@ pnpm dev:cli -- analyze-telemetry --spacecraft-id SC-001 --limit 10
 
 - `src/domain` – entities, value objects, domain errors
 - `src/application` – services/use cases, no HTTP/CLI
-- `src/infrastructure` – repos, logging, time, LLM stubs
+- `src/infrastructure` – repos, logging, time
 - `src/interfaces/http` – Fastify routes/controllers
 - `src/interfaces/cli` – Commander commands
 
 ### Roadmap
 
-- Real OpenAI LLM client
 - Auth / multi-tenant support
 - Real telemetry ingestion pipeline

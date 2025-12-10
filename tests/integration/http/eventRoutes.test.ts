@@ -12,7 +12,6 @@ const cfg: AppConfig = {
   DATA_BACKEND: 'in-memory',
   DATA_DIR: undefined,
   DATABASE_URL: undefined,
-  OPENAI_API_KEY: undefined,
 };
 describe('HTTP event routes', () => {
   it('lists events (empty initially)', async () => {
