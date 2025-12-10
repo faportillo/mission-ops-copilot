@@ -1,5 +1,6 @@
 import type { SpacecraftConfigRepository } from '../../infrastructure/persistence/SpacecraftConfigRepository.js';
 import { AnomalyRulesConfigSchema } from '../../domain/telemetry/AnomalyRules.js';
+import type { SpacecraftConfig } from '../../domain/spacecraft/SpacecraftConfig.js';
 import { z } from 'zod';
 
 export class SpacecraftConfigService {
@@ -32,5 +33,13 @@ export class SpacecraftConfigService {
     AnomalyRulesConfigSchema.safeParse(parsed.data);
 
     return this.repo.upsert(spacecraftId, parsed.data, options);
+  }
+
+  async listConfigsPaged(options: { limit: number; offset: number }): Promise<SpacecraftConfig[]> {
+    return this.repo.listConfigsPaged(options);
+  }
+
+  async countConfigs(): Promise<number> {
+    return this.repo.countConfigs();
   }
 }

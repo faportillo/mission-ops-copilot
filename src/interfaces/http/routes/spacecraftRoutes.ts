@@ -4,6 +4,27 @@ import type { AppContext } from '../../../index.js';
 export async function spacecraftRoutes(app: FastifyInstance, ctx: AppContext) {
   const { spacecraftConfigService } = ctx;
 
+  app.withTypeProvider().get('/spacecraft', {}, async (req) => {
+    // Parse pagination parameters (limit, offset) from query string
+    const { limit = 20, offset = 0 } = req.query as { limit?: number; offset?: number };
+    // Ensure numeric and positive values with sensible bounds
+    const safeLimit = Math.max(1, Math.min(Number(limit) || 20, 100));
+    const safeOffset = Math.max(0, Number(offset) || 0);
+
+    // Fetch total count and corresponding page of configs
+    const [items, total] = await Promise.all([
+      spacecraftConfigService.listConfigsPaged({ limit: safeLimit, offset: safeOffset }),
+      spacecraftConfigService.countConfigs(),
+    ]);
+    return {
+      total,
+      count: items.length,
+      limit: safeLimit,
+      offset: safeOffset,
+      items,
+    };
+  });
+
   app.get('/spacecraft/:id/config', async (request, reply) => {
     const { id: spacecraftId } = request.params as { id: string };
 

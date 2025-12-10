@@ -7,4 +7,6 @@ export interface SpacecraftConfigRepository {
     config: unknown,
     options?: { status?: string; source?: string },
   ): Promise<SpacecraftConfig>;
+  listConfigsPaged(options: { limit: number; offset: number }): Promise<SpacecraftConfig[]>;
+  countConfigs(): Promise<number>;
 }

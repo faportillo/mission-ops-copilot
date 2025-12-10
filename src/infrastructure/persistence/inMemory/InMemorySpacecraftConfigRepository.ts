@@ -35,4 +35,13 @@ export class InMemorySpacecraftConfigRepository implements SpacecraftConfigRepos
     this.bySpacecraft.set(spacecraftId, row);
     return row;
   }
+  async listConfigsPaged(options: { limit: number; offset: number }): Promise<SpacecraftConfig[]> {
+    return Array.from(this.bySpacecraft.values()).slice(
+      options.offset,
+      options.offset + options.limit,
+    );
+  }
+  async countConfigs(): Promise<number> {
+    return this.bySpacecraft.size;
+  }
 }
