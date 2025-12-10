@@ -47,3 +47,16 @@ export const SearchDocsQuery = z.object({
   limit: z.coerce.number().int().positive().max(50).default(10),
 });
 export type SearchDocsQueryType = z.infer<typeof SearchDocsQuery>;
+
+export const GetAnomaliesQuery = z.object({
+  spacecraftId: z.string().min(1),
+  limit: z.coerce.number().int().positive().max(200).default(20),
+});
+export type GetAnomaliesQueryType = z.infer<typeof GetAnomaliesQuery>;
+
+export const GetAnomaliesTimelineQuery = z.object({
+  spacecraftId: z.string().min(1),
+  from: z.coerce.date(),
+  to: z.coerce.date(),
+});
+export type GetAnomaliesTimelineQueryType = z.infer<typeof GetAnomaliesTimelineQuery>;

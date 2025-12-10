@@ -18,14 +18,18 @@ import { SearchDocsUseCase } from './application/docs/SearchDocsUseCase.js';
 import type { TelemetryRepository } from './infrastructure/persistence/TelemetryRepository.js';
 import type { EventRepository } from './infrastructure/persistence/EventRepository.js';
 import type { DocsRepository } from './infrastructure/persistence/DocsRepository.js';
+import type { AnomalyRepository } from './infrastructure/persistence/AnomalyRepository.js';
 import type { Logger } from './logging/logger.js';
 import { PostgresTelemetryRepository } from './infrastructure/persistence/db/PostgresTelemetryRepository.js';
 import { PostgresEventRepository } from './infrastructure/persistence/db/PostgresEventRepository.js';
 import { PostgresDocsRepository } from './infrastructure/persistence/db/PostgresDocsRepository.js';
+import { PostgresAnomalyRepository } from './infrastructure/persistence/db/PostgresAnomalyRepository.js';
 import type { SpacecraftConfigRepository } from './infrastructure/persistence/SpacecraftConfigRepository.js';
 import { PostgresSpacecraftConfigRepository } from './infrastructure/persistence/db/PostgresSpacecraftConfigRepository.js';
 import { InMemorySpacecraftConfigRepository } from './infrastructure/persistence/inMemory/InMemorySpacecraftConfigRepository.js';
+import { InMemoryAnomalyRepository } from './infrastructure/persistence/inMemory/InMemoryAnomalyRepository.js';
 import { SpacecraftConfigService } from './application/spacecraft/SpacecraftConfigService.js';
+import { DetectAndPersistAnomaliesForSpacecraftUseCase } from './application/telemetry/DetectAndPersistAnomaliesForSpacecraftUseCase.js';
 import { ListSpacecraftConfigUseCase } from './application/spacecraft/ListSpacecraftConfigUseCase.js';
 import { CountSpacecraftConfigsUseCase } from './application/spacecraft/CountSpacecraftConfigsUseCase.js';
 
@@ -36,6 +40,7 @@ export type AppContext = {
   telemetryRepository: TelemetryRepository;
   eventRepository: EventRepository;
   docsRepository: DocsRepository;
+  anomalyRepository: AnomalyRepository;
   spacecraftConfigRepository: SpacecraftConfigRepository;
   telemetryService: TelemetryService;
   eventService: EventService;
@@ -45,6 +50,7 @@ export type AppContext = {
   listTelemetryUseCase: ListTelemetryUseCase;
   listEventsUseCase: ListEventsUseCase;
   searchDocsUseCase: SearchDocsUseCase;
+  detectAndPersistAnomaliesUseCase: DetectAndPersistAnomaliesForSpacecraftUseCase;
   listSpacecraftConfigUseCase: ListSpacecraftConfigUseCase;
   countSpacecraftConfigsUseCase: CountSpacecraftConfigsUseCase;
 };
@@ -57,6 +63,7 @@ export function createAppContext(passedConfig?: AppConfig): AppContext {
   let telemetryRepository: TelemetryRepository;
   let eventRepository: EventRepository;
   let docsRepository: DocsRepository;
+  let anomalyRepository: AnomalyRepository;
   let spacecraftConfigRepository: SpacecraftConfigRepository;
 
   if (config.DATA_BACKEND === 'file' && config.DATA_DIR) {
@@ -64,16 +71,19 @@ export function createAppContext(passedConfig?: AppConfig): AppContext {
     eventRepository = new FileEventRepository(config.DATA_DIR);
     docsRepository = new FileDocsRepository(config.DATA_DIR);
     spacecraftConfigRepository = new InMemorySpacecraftConfigRepository();
+    anomalyRepository = new InMemoryAnomalyRepository();
   } else if (config.DATA_BACKEND === 'postgres') {
     telemetryRepository = new PostgresTelemetryRepository();
     eventRepository = new PostgresEventRepository();
     docsRepository = new PostgresDocsRepository();
     spacecraftConfigRepository = new PostgresSpacecraftConfigRepository();
+    anomalyRepository = new PostgresAnomalyRepository();
   } else {
     telemetryRepository = new InMemoryTelemetryRepository();
     eventRepository = new InMemoryEventRepository();
     docsRepository = new InMemoryDocsRepository();
     spacecraftConfigRepository = new InMemorySpacecraftConfigRepository();
+    anomalyRepository = new InMemoryAnomalyRepository();
   }
 
   const telemetryService = new TelemetryService(telemetryRepository, logger);
@@ -90,6 +100,11 @@ export function createAppContext(passedConfig?: AppConfig): AppContext {
 
   const docsService = new DocsService(docsRepository);
   const searchDocsUseCase = new SearchDocsUseCase(docsRepository);
+  const detectAndPersistAnomaliesUseCase = new DetectAndPersistAnomaliesForSpacecraftUseCase(
+    analyzeTelemetryUseCase,
+    anomalyRepository,
+    logger,
+  );
 
   const listSpacecraftConfigUseCase = new ListSpacecraftConfigUseCase(spacecraftConfigRepository);
   const countSpacecraftConfigsUseCase = new CountSpacecraftConfigsUseCase(
@@ -103,6 +118,7 @@ export function createAppContext(passedConfig?: AppConfig): AppContext {
     telemetryRepository,
     eventRepository,
     docsRepository,
+    anomalyRepository,
     spacecraftConfigRepository,
     telemetryService,
     eventService,
@@ -114,6 +130,7 @@ export function createAppContext(passedConfig?: AppConfig): AppContext {
     searchDocsUseCase,
     listSpacecraftConfigUseCase,
     countSpacecraftConfigsUseCase,
+    detectAndPersistAnomaliesUseCase,
   };
 }
 

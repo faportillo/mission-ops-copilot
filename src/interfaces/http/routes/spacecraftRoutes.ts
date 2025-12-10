@@ -46,12 +46,12 @@ export async function spacecraftRoutes(app: FastifyInstance, ctx: AppContext) {
     const count6h = a6.length;
     const count24h = a24.length;
 
-    const sevOrder = { LOW: 1, MEDIUM: 2, HIGH: 3 } as const;
+    const sevOrder = { LOW: 1, MEDIUM: 2, HIGH: 3, CRITICAL: 4 } as const;
     const highest24 =
-      a24.reduce<'LOW' | 'MEDIUM' | 'HIGH' | null>((acc, x) => {
+      a24.reduce<keyof typeof sevOrder | null>((acc, x) => {
         if (!acc) return x.severity;
         return sevOrder[x.severity] > sevOrder[acc] ? x.severity : acc;
-      }, null) ?? 'LOW';
+      }, null) ?? ('LOW' as keyof typeof sevOrder);
 
     const overallStatus =
       highest24 === 'HIGH' ? 'CRITICAL' : highest24 === 'MEDIUM' ? 'WARNING' : 'NOMINAL';

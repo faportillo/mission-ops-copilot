@@ -59,4 +59,20 @@ model OpsDocument {
   tags     String[]
 }
 
+model TelemetryAnomaly {
+  id           String   @id
+  spacecraftId String
+  timestamp    DateTime
+  parameter    String
+  value        Json
+  severity     String
+  description  String
+  detectedAt   DateTime @default(now())
+  windowStart  DateTime?
+  windowEnd    DateTime?
+
+  @@index([spacecraftId, timestamp])
+  @@unique([spacecraftId, parameter, timestamp])
+}
+
 

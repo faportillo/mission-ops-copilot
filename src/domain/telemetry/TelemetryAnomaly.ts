@@ -4,8 +4,9 @@ export type TelemetryAnomaly = {
   timestamp: Date;
   parameter: string;
   value: number | string | boolean;
-  severity: 'LOW' | 'MEDIUM' | 'HIGH';
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   description: string;
+  detectedAt?: Date;
+  windowStart?: Date | null;
+  windowEnd?: Date | null;
 };
-
-
