@@ -39,6 +39,7 @@ tmp/
 
 node_modules
 dist
+prisma/generated/
 .env
 .DS_Store
 coverage
