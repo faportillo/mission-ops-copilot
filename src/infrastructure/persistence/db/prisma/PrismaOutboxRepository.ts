@@ -1,4 +1,4 @@
-import { PrismaClient } from '../../../../../prisma/generated/client/index.js';
+import type { PrismaTx } from '../../../db/prisma.js';
 import type { NewOutboxMessage, OutboxMessage, OutboxRepository } from '../../OutboxRepository.js';
 
 function toDomain(row: any): OutboxMessage {
@@ -18,7 +18,7 @@ function toDomain(row: any): OutboxMessage {
 }
 
 export class PrismaOutboxRepository implements OutboxRepository {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(private readonly prisma: PrismaTx) {}
 
   async enqueue(message: NewOutboxMessage): Promise<OutboxMessage> {
     const created = await this.prisma.outboxEvent.create({

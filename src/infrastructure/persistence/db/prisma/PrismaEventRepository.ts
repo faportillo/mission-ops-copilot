@@ -1,9 +1,9 @@
 import type { EventRepository } from '../../EventRepository.js';
 import type { MissionEvent } from '../../../../domain/events/MissionEvent.js';
-import { PrismaClient } from '../../../../../prisma/generated/client/index.js';
+import type { PrismaTx } from '../../../db/prisma.js';
 
 export class PrismaEventRepository implements EventRepository {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(private readonly prisma: PrismaTx) {}
 
   async save(event: MissionEvent): Promise<void> {
     await this.prisma.missionEvent.upsert({

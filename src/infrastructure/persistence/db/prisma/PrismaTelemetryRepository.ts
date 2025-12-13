@@ -1,9 +1,9 @@
 import type { TelemetryRepository } from '../../TelemetryRepository.js';
 import { TelemetrySnapshot } from '../../../../domain/telemetry/TelemetrySnapshot.js';
-import { PrismaClient } from '../../../../../prisma/generated/client/index.js';
+import type { PrismaTx } from '../../../db/prisma.js';
 
 export class PrismaTelemetryRepository implements TelemetryRepository {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(private readonly prisma: PrismaTx) {}
 
   async save(snapshot: TelemetrySnapshot): Promise<void> {
     await this.prisma.telemetrySnapshot.upsert({

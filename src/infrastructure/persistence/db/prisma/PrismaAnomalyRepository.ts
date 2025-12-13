@@ -1,9 +1,9 @@
 import type { AnomalyRepository } from '../../AnomalyRepository.js';
 import type { TelemetryAnomaly } from '../../../../domain/telemetry/TelemetryAnomaly.js';
-import { PrismaClient } from '../../../../../prisma/generated/client/index.js';
+import type { PrismaTx } from '../../../db/prisma.js';
 
 export class PrismaAnomalyRepository implements AnomalyRepository {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(private readonly prisma: PrismaTx) {}
   async saveManyUnique(anomalies: TelemetryAnomaly[]): Promise<number> {
     if (anomalies.length === 0) return 0;
     const data = anomalies.map((a) => ({

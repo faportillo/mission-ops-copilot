@@ -1,9 +1,9 @@
 import type { SpacecraftConfigRepository } from '../../SpacecraftConfigRepository.js';
 import type { SpacecraftConfig } from '../../../../domain/spacecraft/SpacecraftConfig.js';
-import { PrismaClient } from '../../../../../prisma/generated/client/index.js';
+import type { PrismaTx } from '../../../db/prisma.js';
 
 export class PrismaSpacecraftConfigRepository implements SpacecraftConfigRepository {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(private readonly prisma: PrismaTx) {}
 
   async getBySpacecraftId(spacecraftId: string): Promise<SpacecraftConfig | null> {
     return this.prisma.spacecraftConfig.findUnique({

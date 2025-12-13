@@ -1,9 +1,9 @@
 import type { DocsRepository } from '../../DocsRepository.js';
 import type { OpsDocument } from '../../../../domain/docs/OpsDocument.js';
-import { PrismaClient } from '../../../../../prisma/generated/client/index.js';
+import type { PrismaTx } from '../../../db/prisma.js';
 
 export class PrismaDocsRepository implements DocsRepository {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(private readonly prisma: PrismaTx) {}
 
   async save(doc: OpsDocument): Promise<void> {
     await this.prisma.opsDocument.upsert({
