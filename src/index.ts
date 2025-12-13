@@ -15,6 +15,7 @@ import { EventService } from './application/events/EventService.js';
 import { ListEventsUseCase } from './application/events/ListEventsUseCase.js';
 import { DocsService } from './application/docs/DocsService.js';
 import { SearchDocsUseCase } from './application/docs/SearchDocsUseCase.js';
+import { CreateOpsDocumentUseCase } from './application/docs/CreateOpsDocumentUseCase.js';
 import type { TelemetryRepository } from './infrastructure/persistence/TelemetryRepository.js';
 import type { EventRepository } from './infrastructure/persistence/EventRepository.js';
 import type { DocsRepository } from './infrastructure/persistence/DocsRepository.js';
@@ -32,6 +33,13 @@ import { SpacecraftConfigService } from './application/spacecraft/SpacecraftConf
 import { DetectAndPersistAnomaliesForSpacecraftUseCase } from './application/telemetry/DetectAndPersistAnomaliesForSpacecraftUseCase.js';
 import { ListSpacecraftConfigUseCase } from './application/spacecraft/ListSpacecraftConfigUseCase.js';
 import { CountSpacecraftConfigsUseCase } from './application/spacecraft/CountSpacecraftConfigsUseCase.js';
+import { getPrisma } from './infrastructure/db/prisma.js';
+import { PostgresTransactionManager } from './infrastructure/db/PostgresTransactionManager.js';
+import type {
+  TransactionManager,
+  TransactionalContext,
+} from './application/tx/TransactionManager.js';
+import { InMemoryOutboxRepository } from './infrastructure/persistence/inMemory/InMemoryOutboxRepository.js';
 
 export type AppContext = {
   config: AppConfig;
@@ -50,6 +58,7 @@ export type AppContext = {
   listTelemetryUseCase: ListTelemetryUseCase;
   listEventsUseCase: ListEventsUseCase;
   searchDocsUseCase: SearchDocsUseCase;
+  createOpsDocumentUseCase: CreateOpsDocumentUseCase;
   detectAndPersistAnomaliesUseCase: DetectAndPersistAnomaliesForSpacecraftUseCase;
   listSpacecraftConfigUseCase: ListSpacecraftConfigUseCase;
   countSpacecraftConfigsUseCase: CountSpacecraftConfigsUseCase;
@@ -65,6 +74,7 @@ export function createAppContext(passedConfig?: AppConfig): AppContext {
   let docsRepository: DocsRepository;
   let anomalyRepository: AnomalyRepository;
   let spacecraftConfigRepository: SpacecraftConfigRepository;
+  let txManager: TransactionManager;
 
   if (config.DATA_BACKEND === 'file' && config.DATA_DIR) {
     telemetryRepository = new FileTelemetryRepository(config.DATA_DIR);
@@ -72,18 +82,45 @@ export function createAppContext(passedConfig?: AppConfig): AppContext {
     docsRepository = new FileDocsRepository(config.DATA_DIR);
     spacecraftConfigRepository = new InMemorySpacecraftConfigRepository();
     anomalyRepository = new InMemoryAnomalyRepository();
+    // Minimal inline transaction manager for non-DB backends
+    const outboxRepo = new InMemoryOutboxRepository();
+    txManager = {
+      withTransaction: async <T>(fn: (ctx: TransactionalContext) => Promise<T>) =>
+        fn({
+          docs: docsRepository,
+          spacecraftConfigs: spacecraftConfigRepository,
+          telemetry: telemetryRepository,
+          anomalies: anomalyRepository,
+          events: eventRepository,
+          outbox: outboxRepo,
+        }),
+    };
   } else if (config.DATA_BACKEND === 'postgres') {
-    telemetryRepository = new PostgresTelemetryRepository();
-    eventRepository = new PostgresEventRepository();
-    docsRepository = new PostgresDocsRepository();
-    spacecraftConfigRepository = new PostgresSpacecraftConfigRepository();
-    anomalyRepository = new PostgresAnomalyRepository();
+    const prisma = getPrisma();
+    telemetryRepository = new PostgresTelemetryRepository(prisma);
+    eventRepository = new PostgresEventRepository(prisma);
+    docsRepository = new PostgresDocsRepository(prisma);
+    spacecraftConfigRepository = new PostgresSpacecraftConfigRepository(prisma);
+    anomalyRepository = new PostgresAnomalyRepository(prisma);
+    txManager = new PostgresTransactionManager(prisma);
   } else {
     telemetryRepository = new InMemoryTelemetryRepository();
     eventRepository = new InMemoryEventRepository();
     docsRepository = new InMemoryDocsRepository();
     spacecraftConfigRepository = new InMemorySpacecraftConfigRepository();
     anomalyRepository = new InMemoryAnomalyRepository();
+    const outboxRepo = new InMemoryOutboxRepository();
+    txManager = {
+      withTransaction: async <T>(fn: (ctx: TransactionalContext) => Promise<T>) =>
+        fn({
+          docs: docsRepository,
+          spacecraftConfigs: spacecraftConfigRepository,
+          telemetry: telemetryRepository,
+          anomalies: anomalyRepository,
+          events: eventRepository,
+          outbox: outboxRepo,
+        }),
+    };
   }
 
   const telemetryService = new TelemetryService(telemetryRepository, logger);
@@ -100,6 +137,7 @@ export function createAppContext(passedConfig?: AppConfig): AppContext {
 
   const docsService = new DocsService(docsRepository);
   const searchDocsUseCase = new SearchDocsUseCase(docsRepository);
+  const createOpsDocumentUseCase = new CreateOpsDocumentUseCase(txManager);
   const detectAndPersistAnomaliesUseCase = new DetectAndPersistAnomaliesForSpacecraftUseCase(
     analyzeTelemetryUseCase,
     anomalyRepository,
@@ -128,6 +166,7 @@ export function createAppContext(passedConfig?: AppConfig): AppContext {
     listTelemetryUseCase,
     listEventsUseCase,
     searchDocsUseCase,
+    createOpsDocumentUseCase,
     listSpacecraftConfigUseCase,
     countSpacecraftConfigsUseCase,
     detectAndPersistAnomaliesUseCase,
@@ -148,3 +187,4 @@ export * from './application/events/EventService.js';
 export * from './application/events/ListEventsUseCase.js';
 export * from './application/docs/DocsService.js';
 export * from './application/docs/SearchDocsUseCase.js';
+export * from './application/docs/CreateOpsDocumentUseCase.js';

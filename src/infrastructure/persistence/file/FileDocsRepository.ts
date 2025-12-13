@@ -1,7 +1,7 @@
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import type { DocsRepository } from '../DocsRepository.js';
-import type { OpsDocument } from '../../../domain/docs/OpsDocument.js';
+import { OpsDocument } from '../../../domain/docs/OpsDocument.js';
 
 export class FileDocsRepository implements DocsRepository {
   private filePath: string;
@@ -12,8 +12,19 @@ export class FileDocsRepository implements DocsRepository {
   private async readAll(): Promise<OpsDocument[]> {
     try {
       const data = await fs.readFile(this.filePath, 'utf8');
-      const parsed = JSON.parse(data) as OpsDocument[];
-      return parsed.map((d) => ({ ...d, tags: d.tags ?? [] }));
+      const parsed = JSON.parse(data) as Array<any>;
+      return parsed.map(
+        (d) =>
+          new OpsDocument(
+            d.id,
+            d.spacecraftId ?? null,
+            d.title,
+            d.category ?? 'general',
+            d.tags ?? [],
+            d.content ?? '',
+            d.publishedAt ? new Date(d.publishedAt) : new Date(0),
+          ),
+      );
     } catch {
       return [];
     }
@@ -21,7 +32,16 @@ export class FileDocsRepository implements DocsRepository {
 
   private async writeAll(docs: OpsDocument[]): Promise<void> {
     await fs.mkdir(this.dataDir, { recursive: true });
-    await fs.writeFile(this.filePath, JSON.stringify(docs, null, 2), 'utf8');
+    const plain = docs.map((d) => ({
+      id: d.id,
+      spacecraftId: d.spacecraftId,
+      title: d.title,
+      category: d.category,
+      tags: d.tags,
+      content: d.content,
+      publishedAt: d.publishedAt,
+    }));
+    await fs.writeFile(this.filePath, JSON.stringify(plain, null, 2), 'utf8');
   }
 
   async save(doc: OpsDocument): Promise<void> {
@@ -39,7 +59,7 @@ export class FileDocsRepository implements DocsRepository {
       (d) =>
         d.title.toLowerCase().includes(q) ||
         d.content.toLowerCase().includes(q) ||
-        d.tags.some((t) => t.toLowerCase().includes(q))
+        d.tags.some((t) => t.toLowerCase().includes(q)),
     );
     return results.slice(0, limit);
   }
@@ -49,5 +69,3 @@ export class FileDocsRepository implements DocsRepository {
     return docs.find((d) => d.id === id) ?? null;
   }
 }
-
-

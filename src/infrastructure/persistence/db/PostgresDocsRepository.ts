@@ -1,21 +1,36 @@
 import type { DocsRepository } from '../DocsRepository.js';
-import type { OpsDocument } from '../../../domain/docs/OpsDocument.js';
-import { getPrisma } from '../../../infrastructure/db/prisma.js';
+import { OpsDocument } from '../../../domain/docs/OpsDocument.js';
+import { PrismaTx } from '../../db/prisma.js';
 
 export class PostgresDocsRepository implements DocsRepository {
+  constructor(private readonly prisma: PrismaTx) {}
+
   async save(doc: OpsDocument): Promise<void> {
-    const prisma = getPrisma();
-    await prisma.opsDocument.upsert({
+    await this.prisma.opsDocument.upsert({
       where: { id: doc.id },
-      update: { title: doc.title, content: doc.content, tags: doc.tags },
-      create: { id: doc.id, title: doc.title, content: doc.content, tags: doc.tags },
+      update: {
+        spacecraftId: doc.spacecraftId,
+        title: doc.title,
+        category: (doc as any).category ?? 'general',
+        content: doc.content,
+        tags: doc.tags,
+        publishedAt: (doc as any).publishedAt ?? new Date(),
+      } as any,
+      create: {
+        id: doc.id,
+        spacecraftId: doc.spacecraftId ?? null,
+        title: doc.title,
+        category: (doc as any).category ?? 'general',
+        content: doc.content,
+        tags: doc.tags,
+        publishedAt: (doc as any).publishedAt ?? new Date(),
+      } as any,
     });
   }
 
   async search(keyword: string, limit: number): Promise<OpsDocument[]> {
-    const prisma = getPrisma();
     const q = keyword;
-    const rows = await prisma.opsDocument.findMany({
+    const rows = await this.prisma.opsDocument.findMany({
       where: {
         OR: [
           { title: { contains: q, mode: 'insensitive' } },
@@ -25,11 +40,31 @@ export class PostgresDocsRepository implements DocsRepository {
       },
       take: limit,
     });
-    return rows;
+    return rows.map(
+      (r) =>
+        new OpsDocument(
+          r.id,
+          (r as any).spacecraftId ?? null,
+          r.title,
+          (r as any).category ?? 'general',
+          (r as any).tags ?? [],
+          (r as any).content ?? '',
+          (r as any).publishedAt ?? new Date(0),
+        ),
+    );
   }
 
   async findById(id: string): Promise<OpsDocument | null> {
-    const prisma = getPrisma();
-    return prisma.opsDocument.findUnique({ where: { id } });
+    const r = await this.prisma.opsDocument.findUnique({ where: { id } });
+    if (!r) return null;
+    return new OpsDocument(
+      r.id,
+      (r as any).spacecraftId ?? null,
+      r.title,
+      (r as any).category ?? 'general',
+      (r as any).tags ?? [],
+      (r as any).content ?? '',
+      (r as any).publishedAt ?? new Date(0),
+    );
   }
 }

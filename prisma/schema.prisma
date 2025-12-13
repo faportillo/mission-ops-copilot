@@ -68,12 +68,29 @@ model MissionEvent {
 }
 
 model OpsDocument {
-  id       String   @id @default(cuid())
-  title    String
-  content  String
-  tags     String[]
+  id           String   @id @default(cuid())
+  spacecraftId String?
+  title        String
+  category     OpsDocumentCategory @default(general)
+  content      String
+  tags         String[]
+  publishedAt  DateTime @default(now())
 }
 
+enum OpsDocumentCategory {
+  operations_procedure
+  anomaly_report
+  spacecraft_configuration
+  mission_policy
+  telemetry_definition
+  mission_planning
+  maneuver_record
+  conjunction_assessment
+  system_design
+  operations_log
+  external_communication
+  general
+}
 model TelemetryAnomaly {
   id           String   @id
   spacecraftId String

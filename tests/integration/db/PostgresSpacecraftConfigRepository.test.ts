@@ -35,7 +35,7 @@ describe('PostgresSpacecraftConfigRepository (integration)', () => {
     };
     const ctx = createAppContext(cfg);
     // Sanity: use the Postgres repo directly
-    const repo = new PostgresSpacecraftConfigRepository();
+    const repo = new PostgresSpacecraftConfigRepository(getPrisma());
 
     const scId = 'SC-DB-CFG';
     // Ensure FK exists

@@ -1,11 +1,12 @@
 import type { TelemetryRepository } from '../TelemetryRepository.js';
 import { TelemetrySnapshot } from '../../../domain/telemetry/TelemetrySnapshot.js';
-import { getPrisma } from '../../../infrastructure/db/prisma.js';
+import { PrismaTx } from '../../db/prisma.js';
 
 export class PostgresTelemetryRepository implements TelemetryRepository {
+  constructor(private readonly prisma: PrismaTx) {}
+
   async save(snapshot: TelemetrySnapshot): Promise<void> {
-    const prisma = getPrisma();
-    await prisma.telemetrySnapshot.upsert({
+    await this.prisma.telemetrySnapshot.upsert({
       where: { id: snapshot.id },
       update: {
         spacecraftId: snapshot.spacecraftId,
@@ -22,8 +23,7 @@ export class PostgresTelemetryRepository implements TelemetryRepository {
   }
 
   async findRecent(spacecraftId: string, limit: number): Promise<TelemetrySnapshot[]> {
-    const prisma = getPrisma();
-    const rows = await prisma.telemetrySnapshot.findMany({
+    const rows = await this.prisma.telemetrySnapshot.findMany({
       where: { spacecraftId },
       orderBy: { timestamp: 'desc' },
       take: limit,
@@ -39,8 +39,7 @@ export class PostgresTelemetryRepository implements TelemetryRepository {
   }
 
   async findById(id: string): Promise<TelemetrySnapshot | null> {
-    const prisma = getPrisma();
-    const r = await prisma.telemetrySnapshot.findUnique({ where: { id } });
+    const r = await this.prisma.telemetrySnapshot.findUnique({ where: { id } });
     return r
       ? TelemetrySnapshot.create({
           id: r.id,
@@ -52,8 +51,7 @@ export class PostgresTelemetryRepository implements TelemetryRepository {
   }
 
   async findInRange(spacecraftId: string, from: Date, to: Date): Promise<TelemetrySnapshot[]> {
-    const prisma = getPrisma();
-    const rows = await prisma.telemetrySnapshot.findMany({
+    const rows = await this.prisma.telemetrySnapshot.findMany({
       where: {
         spacecraftId,
         timestamp: { gte: from, lte: to },

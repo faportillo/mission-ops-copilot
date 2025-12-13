@@ -4,6 +4,8 @@ import { PostgreSqlContainer, StartedPostgreSqlContainer } from '@testcontainers
 import type { AppConfig } from '../../../src/config/schema.js';
 import { createAppContext } from '../../../src/index.js';
 import { PostgresDocsRepository } from '../../../src/infrastructure/persistence/db/PostgresDocsRepository.js';
+import { getPrisma } from '../../../src/infrastructure/db/prisma.js';
+import { OpsDocument } from '../../../src/domain/docs/OpsDocument.js';
 
 let container: StartedPostgreSqlContainer;
 
@@ -12,7 +14,11 @@ describe('PostgresDocsRepository (integration)', () => {
     container = await new PostgreSqlContainer().start();
     const url = container.getConnectionUri();
     process.env.DATABASE_URL = url;
-    await execa('npx', ['prisma', 'db', 'push', '--skip-generate'], {
+    await execa('npx', ['prisma', 'generate'], {
+      cwd: process.cwd(),
+      env: { ...process.env },
+    });
+    await execa('npx', ['prisma', 'db', 'push'], {
       cwd: process.cwd(),
       env: { ...process.env, DATABASE_URL: url },
     });
@@ -31,17 +37,24 @@ describe('PostgresDocsRepository (integration)', () => {
       DATA_BACKEND: 'postgres',
       DATA_DIR: undefined,
       DATABASE_URL: url,
+      KAFKA_CLIENT_ID: 'test',
+      KAFKA_OUTBOX_ENABLED: false,
+      KAFKA_OUTBOX_POLL_MS: 1000,
+      KAFKA_OUTBOX_BATCH_SIZE: 10,
     };
     const ctx = createAppContext(cfg);
-    const repo = new PostgresDocsRepository();
+    const repo = new PostgresDocsRepository(getPrisma());
 
     const doc = {
       id: `doc_${Date.now()}`,
       title: 'Mission Ops Handbook',
       content: 'Procedures and checklists for operations.',
       tags: ['ops', 'handbook'],
+      spacecraftId: 'sc_123',
+      category: 'general',
+      publishedAt: new Date(),
     };
-    await repo.save(doc);
+    await repo.save(<OpsDocument>doc);
 
     const byId = await repo.findById(doc.id);
     expect(byId?.id).toBe(doc.id);

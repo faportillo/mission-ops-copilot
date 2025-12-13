@@ -7,5 +7,3 @@ export class SearchDocsUseCase {
     return this.repo.search(keyword, limit);
   }
 }
-
-

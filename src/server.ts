@@ -5,6 +5,7 @@ import { loadConfig } from './config/index.js';
 import { getLogger } from './logging/logger.js';
 import { OutboxDispatcher } from './infrastructure/messaging/OutboxDispatcher.js';
 import { PostgresOutboxRepository } from './infrastructure/persistence/db/PostgresOutboxRepository.js';
+import { getPrisma } from './infrastructure/db/prisma.js';
 
 async function main() {
   const config = loadConfig();
@@ -23,7 +24,7 @@ async function main() {
     // Start optional Kafka outbox dispatcher
     let dispatcher: OutboxDispatcher | null = null;
     if (config.KAFKA_OUTBOX_ENABLED && config.DATA_BACKEND === 'postgres') {
-      const outboxRepo = new PostgresOutboxRepository();
+      const outboxRepo = new PostgresOutboxRepository(getPrisma());
       dispatcher = new OutboxDispatcher({
         repo: outboxRepo,
         logger,

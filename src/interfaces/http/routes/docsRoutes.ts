@@ -8,9 +8,14 @@ export async function docsRoutes(app: FastifyInstance, ctx: AppContext) {
     const body = PostDocBody.parse(req.body);
     const id = body.id ?? uuidv4();
     ctx.logger.info('POST /docs received', { id, title: body.title });
-    await ctx.docsService.save({ id, title: body.title, content: body.content, tags: body.tags });
+    const result = await ctx.createOpsDocumentUseCase.execute({
+      id,
+      title: body.title,
+      content: body.content,
+      tags: body.tags,
+    });
     ctx.logger.info('POST /docs saved', { id });
-    return reply.code(201).send({ id });
+    return reply.code(201).send({ id: result.documentId });
   });
 
   app.withTypeProvider().get('/docs/search', {}, async (req) => {
